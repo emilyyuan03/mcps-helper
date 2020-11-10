@@ -29,7 +29,7 @@
 
 <h1>MCPS Helper</h1>
 <button id="addAssignment" onclick="addAssignment()">Add Assignment</button><br><br>
-<table id ="assignments" width="25%">
+<table id ="assignments" width="30%">
     <tr>
         <th>Category</th>
         <th>Score</th>
@@ -50,19 +50,19 @@
         <td>All Tasks/Assessments</td>
         <td>0</td>
         <td>0</td>
-        <td>0 %</td>
+        <td>0%</td>
     </tr>
     <tr>
         <td>HW for Prac/Prep</td>
         <td>0</td>
         <td>0</td>
-        <td>0 %</td>
+        <td>0%</td>
     </tr>
     <tr>
         <td>Overall Grade</td>
         <td></td>
         <td></td>
-        <td>0 %</td>
+        <td>0%</td>
     </tr>
 </table>
 
@@ -118,6 +118,11 @@
             categories[this.id] = category;
             totals[this.id] = parseInt(assignments.rows[this.id].cells[2].getElementsByTagName('input')[0].value);
 
+            if(totals[this.id]!==0)
+                assignments.rows[this.id].cells[3].innerHTML = (scores[this.id] / totals[this.id] * 100).toFixed(2) + "%";
+            else
+                assignments.rows[this.id].cells[3].innerHTML = "0%"
+
             updateGrades();
         })
 
@@ -135,24 +140,20 @@
             else
                 val = 0;
             totals[this.id] = val;
-            scores[this.id] = parseInt(assignments.rows[this.id].cells[1].getElementsByTagName('input')[0].value);
             let select = assignments.rows[this.id].cells[0].getElementsByTagName('select')[0];
             let category = select.options[select.selectedIndex].value;
             categories[this.id] = category;
+            scores[this.id] = parseInt(assignments.rows[this.id].cells[1].getElementsByTagName('input')[0].value);
+
+            if(totals[this.id]!==0)
+                assignments.rows[this.id].cells[3].innerHTML = (scores[this.id] / totals[this.id] * 100).toFixed(2) + "%";
+            else
+                assignments.rows[this.id].cells[3].innerHTML = "0%"
 
             updateGrades();
         })
 
-        row.insertCell(3);
-
-        //add delete button
-        let deleteButton = document.createElement("button");
-        deleteButton.textContent = "Delete";
-        deleteButton.setAttribute("id", row.rowIndex);
-        row.insertCell(4).appendChild(deleteButton);
-
-        deleteButton.addEventListener("click", function(){
-        })
+        row.insertCell(3).innerHTML = "0%";
     }
 
     function updateGrades(){
@@ -160,7 +161,6 @@
         let taskTotal = 0;
         let hwScores = 0;
         let hwTotal = 0;
-        let total = 0;
 
         for(let i=0; i<categories.length; i++){
             if(categories[i] == "All Tasks/Assessments"){
@@ -177,23 +177,23 @@
         overall.rows[2].cells[1].innerHTML = hwScores;
         overall.rows[2].cells[2].innerHTML = hwTotal;
 
-        if(taskTotal !== 0){
-            let percent = taskScores/taskTotal*100;
-            total += percent * .9;
-            overall.rows[1].cells[3].innerHTML = percent.toFixed(2) + " %";
+        if(taskTotal!==0 && hwTotal!==0){
+            overall.rows[1].cells[3].innerHTML = (taskScores/taskTotal*100).toFixed(2) + "%";
+            overall.rows[2].cells[3].innerHTML = (hwScores/hwTotal*100).toFixed(2) + "%";
+            overall.rows[3].cells[3].innerHTML = ((taskScores/taskTotal*100*.9)+(hwScores/hwTotal*100*.1)).toFixed(2) + "%";
+        } else if(taskTotal!==0 && hwTotal==0){
+            overall.rows[1].cells[3].innerHTML = (taskScores/taskTotal*100).toFixed(2) + "%";
+            overall.rows[2].cells[3].innerHTML = 0 + "%";
+            overall.rows[3].cells[3].innerHTML = (taskScores/taskTotal*100).toFixed(2) + "%";
+        } else if(taskTotal==0 && hwTotal!==0){
+            overall.rows[1].cells[3].innerHTML = 0 + "%";
+            overall.rows[2].cells[3].innerHTML = (hwScores/hwTotal*100).toFixed(2) + "%";
+            overall.rows[3].cells[3].innerHTML = (hwScores/hwTotal*100).toFixed(2) + "%";
         } else{
-            overall.rows[1].cells[3].innerHTML = 0 + " %";
+            overall.rows[1].cells[3].innerHTML = 0 + "%";
+            overall.rows[2].cells[3].innerHTML = 0 + "%";
+            overall.rows[3].cells[3].innerHTML = 0 + "%";
         }
-
-        if(hwTotal !== 0){
-            let percent = hwScores/hwTotal*100;
-            total += percent * .1;
-            overall.rows[2].cells[3].innerHTML = percent.toFixed(2) + " %";
-        } else{
-            overall.rows[2].cells[3].innerHTML = 0 + " %";
-        }
-
-        overall.rows[3].cells[3].innerHTML = total.toFixed(2) + " %";
     }
 
 </script>
