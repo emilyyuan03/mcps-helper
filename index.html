@@ -13,7 +13,7 @@
         }
         tr:nth-child(odd) {background-color: #f2f2f2;}
         th {background-color: oldlace;}
-        body {font-family: "Avenir Next";}
+        body {font-family: "Avenir Next"; padding-left: 5px}
         button, select{
             width:10vw;
             height:4vh;
@@ -22,12 +22,45 @@
             width:10vw;
             height:3vh;
         }
+
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgb(0,0,0); /* Fallback color */
+            background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto; /* 15% from the top and centered */
+            padding: 20px;
+            border: 1px solid #888;
+            width: 50%; /* Could be more or less, depending on screen size */
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
     </style>
 </head>
 <body>
 <h1>MCPS Helper</h1>
 
-<table id="overall">
+<table id="overall" width="50%">
     <tr>
         <th>Category</th>
         <th>Score</th>
@@ -36,25 +69,25 @@
     </tr>
     <tr>
         <td>All Tasks/Assessments</td>
-        <td>0</td>
-        <td>0</td>
-        <td>0%</td>
+        <td>0.00</td>
+        <td>0.00</td>
+        <td>0.00%</td>
     </tr>
     <tr>
         <td>Practice/Preparation</td>
-        <td>0</td>
-        <td>0</td>
-        <td>0%</td>
+        <td>0.00</td>
+        <td>0.00</td>
+        <td>0.00%</td>
     </tr>
     <tr>
         <td>Overall Grade</td>
         <td></td>
         <td></td>
-        <td>0%</td>
+        <td>0.00%</td>
     </tr>
 </table><br>
 
-<table id ="assignments" width="30%">
+<table id ="assignments" width="50%">
     <tr>
         <th>Category</th>
         <th>Score</th>
@@ -63,36 +96,95 @@
     </tr>
 </table><br>
 
-<button id="addAssignment" onclick="addAssignment()">Add Assignment</button>
+<span>
+    <button id="addAssignment" onclick="addAssignment(0.00,0.00,0.00,0.00)">Add Assignment</button>
+    <button id="import" onclick="modalOpen()">Import Grades</button>
+</span>
+
+<div id="importPopup" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="modalClose()">&times;</span>
+        <p>Copy and paste your grades from Synergy: </p>
+        <p style="font-size: 12px">Start from the first assignment's "Date" cell (top left) to last assignment's "Notes" cell (bottom right)</p>
+        <form><textarea id="grades" name="grades" rows="20" cols="85"></textarea></form><br>
+        <button id="submit" onclick="importGrades()">Import</button>
+    </div>
+</div>
+
 </body>
 
 <script>
     let assignments = document.getElementById('assignments');
     let overall = document.getElementById('overall');
+    let form = document.getElementById('importPopup');
 
-    let categories = ['']
+    let categories = [''];
     let scores = [0];
     let totals = [0];
 
-    function addAssignment(){
+    function modalOpen(){
+        form.style.display = 'block';
+    }
+    function modalClose(){
+        form.style.display = 'none';
+        document.getElementById('grades').value = '';
+    }
+
+    //add assignments taken from form. handle malicious input better
+    function importGrades(){
+        form.style.display = 'none';
+        let input = document.getElementById('grades').value;
+        let splitted = input.split("\n");
+
+        for(let i=0; i<splitted.length; i+=5){
+            let categoryIndex = 0.00;
+            let score = 0.00;
+            let total = 0.00;
+            let percent = 0.00;
+
+            if(splitted[i+2].includes("All Tasks / Assessments"))
+                categoryIndex = 1;
+            else if(splitted[i+2].includes("Practice / Preparation"))
+                categoryIndex = 2;
+
+            let grade = splitted[i+3].split(' out of ');
+            if(grade.length==2){
+                if(isNaN(parseFloat(grade[0])) || isNaN(parseFloat(grade[1])))
+                    alert("Please enter valid grades or check your formatting!")
+                else{
+                    score = parseFloat(grade[0]);
+                    total = parseFloat(grade[1]);
+                    if(total!=0)
+                        percent = (score/total*100.00).toFixed(2);
+                }
+            }
+
+            addAssignment(categoryIndex, score, total, percent);
+        }
+
+        document.getElementById('grades').value = '';
+        updateGrades();
+    }
+
+    //adds an assignment to table row
+    function addAssignment(categoryIndex, score, total, percent){
         let row = assignments.insertRow();
 
         //category
         let categorySelect = document.createElement("select");
         categorySelect.setAttribute("id", row.rowIndex);
 
-        let options = ["", "All Tasks/Assessments", "Practice/Preparation"];
+        let options = ["Select...", "All Tasks/Assessments", "Practice/Preparation"];
         for(let option of options) {
             let list = document.createElement("option");
             list.text = option;
             categorySelect.appendChild(list);
         }
-
+        categorySelect.selectedIndex = categoryIndex;
         row.insertCell(0).appendChild(categorySelect);
+
         categorySelect.addEventListener("change", function(e){
             categories[this.id] = e.target.value;
-            scores[this.id] = parseInt(assignments.rows[this.id].cells[1].getElementsByTagName('input')[0].value);
-            totals[this.id] = parseInt(assignments.rows[this.id].cells[2].getElementsByTagName('input')[0].value);
             updateGrades();
         })
 
@@ -100,27 +192,22 @@
         //score
         let scoreInput = document.createElement("input");
         scoreInput.type = 'number';
-        scoreInput.defaultValue = 0;
+        scoreInput.defaultValue = score;
         scoreInput.setAttribute("id", row.rowIndex);
         row.insertCell(1).appendChild(scoreInput);
 
         scoreInput.addEventListener("input", function(e){
             let val = e.target.value;
             if(val)
-                val = parseInt(val);
+                val = parseFloat(val);
             else
-                val = 0;
-
+                val = 0.00;
             scores[this.id] = val;
-            let select = assignments.rows[this.id].cells[0].getElementsByTagName('select')[0];
-            let category = select.options[select.selectedIndex].value;
-            categories[this.id] = category;
-            totals[this.id] = parseInt(assignments.rows[this.id].cells[2].getElementsByTagName('input')[0].value);
 
-            if(totals[this.id]!==0)
-                assignments.rows[this.id].cells[3].innerHTML = (scores[this.id]/totals[this.id]*100).toFixed(2) + "%";
+            if(totals[this.id]!=0.00)
+                assignments.rows[this.id].cells[3].innerHTML = (scores[this.id]/totals[this.id]*100.00).toFixed(2) + "%";
             else
-                assignments.rows[this.id].cells[3].innerHTML = "0%"
+                assignments.rows[this.id].cells[3].innerHTML = "0.00%"
 
             updateGrades();
         })
@@ -129,39 +216,39 @@
         //total
         let totalInput = document.createElement("input");
         totalInput.type = 'number';
-        totalInput.defaultValue = 0;
+        totalInput.defaultValue = total;
         totalInput.setAttribute("id", row.rowIndex);
         row.insertCell(2).appendChild(totalInput);
 
         totalInput.addEventListener("input", function(e){
             let val = e.target.value;
             if(val)
-                val = parseInt(val);
+                val = parseFloat(val);
             else
-                val = 0;
-
+                val = 0.00;
             totals[this.id] = val;
-            let select = assignments.rows[this.id].cells[0].getElementsByTagName('select')[0];
-            let category = select.options[select.selectedIndex].value;
-            categories[this.id] = category;
-            scores[this.id] = parseInt(assignments.rows[this.id].cells[1].getElementsByTagName('input')[0].value);
 
-            if(totals[this.id]!==0)
-                assignments.rows[this.id].cells[3].innerHTML = (scores[this.id]/totals[this.id]*100).toFixed(2) + "%";
+            if(totals[this.id]!=0.00)
+                assignments.rows[this.id].cells[3].innerHTML = (scores[this.id]/totals[this.id]*100.00).toFixed(2) + "%";
             else
-                assignments.rows[this.id].cells[3].innerHTML = "0%"
+                assignments.rows[this.id].cells[3].innerHTML = "0.00%"
 
             updateGrades();
         })
 
-        row.insertCell(3).innerHTML = "0%";
+        row.insertCell(3).innerHTML = percent + "%";
+
+        categories[row.rowIndex] = options[categoryIndex];
+        scores[row.rowIndex] = score;
+        totals[row.rowIndex] = total;
     }
 
+    //calculate grades for overall table
     function updateGrades(){
-        let taskScores = 0;
-        let taskTotal = 0;
-        let hwScores = 0;
-        let hwTotal = 0;
+        let taskScores = 0.00;
+        let taskTotal = 0.00;
+        let hwScores = 0.00;
+        let hwTotal = 0.00;
 
         for(let i=1; i<categories.length; i++){
             if(categories[i] == "All Tasks/Assessments"){
@@ -178,22 +265,22 @@
         overall.rows[2].cells[1].innerHTML = hwScores;
         overall.rows[2].cells[2].innerHTML = hwTotal;
 
-        if(taskTotal!==0 && hwTotal!==0){
+        if(taskTotal!=0 && hwTotal!=0){
             overall.rows[1].cells[3].innerHTML = (taskScores/taskTotal*100).toFixed(2) + "%";
             overall.rows[2].cells[3].innerHTML = (hwScores/hwTotal*100).toFixed(2) + "%";
             overall.rows[3].cells[3].innerHTML = ((taskScores/taskTotal*100*.9)+(hwScores/hwTotal*100*.1)).toFixed(2) + "%";
-        } else if(taskTotal!==0 && hwTotal==0){
+        } else if(taskTotal!=0 && hwTotal==0){
             overall.rows[1].cells[3].innerHTML = (taskScores/taskTotal*100).toFixed(2) + "%";
-            overall.rows[2].cells[3].innerHTML = "0%";
+            overall.rows[2].cells[3].innerHTML = "0.00%";
             overall.rows[3].cells[3].innerHTML = (taskScores/taskTotal*100).toFixed(2) + "%";
-        } else if(taskTotal==0 && hwTotal!==0){
-            overall.rows[1].cells[3].innerHTML = "0%";
+        } else if(taskTotal==0 && hwTotal!=0){
+            overall.rows[1].cells[3].innerHTML = "0.00%";
             overall.rows[2].cells[3].innerHTML = (hwScores/hwTotal*100).toFixed(2) + "%";
             overall.rows[3].cells[3].innerHTML = (hwScores/hwTotal*100).toFixed(2) + "%";
         } else{
-            overall.rows[1].cells[3].innerHTML = "0%";
-            overall.rows[2].cells[3].innerHTML = "0%";
-            overall.rows[3].cells[3].innerHTML = "0%";
+            overall.rows[1].cells[3].innerHTML = "0.00%";
+            overall.rows[2].cells[3].innerHTML = "0.00%";
+            overall.rows[3].cells[3].innerHTML = "0.00%";
         }
     }
 
