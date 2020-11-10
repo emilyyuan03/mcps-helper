@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MCPS Helper</title>
+
+    <style>
+        table, th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px gray;
+            border-collapse: collapse;
+            font-family: "Avenir Next";
+        }
+        tr:nth-child(odd) {background-color: #f2f2f2;}
+        th{
+            background-color: oldlace;
+        }
+        body{
+            font-family: "Avenir Next";
+        }
+        button, select, input{
+            width:10vw;
+            height:4vh;
+        }
+    </style>
+</head>
+<body>
+
+<h1>MCPS Helper</h1>
+<button id="addAssignment" onclick="addAssignment()">Add Assignment</button><br><br>
+<table id ="assignments" width="25%">
+    <tr>
+        <th>Category</th>
+        <th>Score</th>
+        <th>Total</th>
+        <th>Percent</th>
+    </tr>
+</table>
+<br><br>
+
+<table id="overall">
+    <tr>
+        <th>Category</th>
+        <th>Score</th>
+        <th>Total</th>
+        <th>Percent</th>
+    </tr>
+    <tr>
+        <td>All Tasks/Assessments</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0 %</td>
+    </tr>
+    <tr>
+        <td>HW for Prac/Prep</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0 %</td>
+    </tr>
+    <tr>
+        <td>Overall Grade</td>
+        <td></td>
+        <td></td>
+        <td>0 %</td>
+    </tr>
+</table>
+
+</body>
+
+<script>
+    let assignments = document.getElementById('assignments');
+    let overall = document.getElementById('overall');
+
+    let categories = ['']      //trash data cuz rows messed up
+    let scores = [0];
+    let totals = [0];
+
+    function addAssignment(){
+        let row = assignments.insertRow();
+
+        //add category cell
+        let categorySelect = document.createElement("select");
+        categorySelect.setAttribute("id", row.rowIndex);
+
+        let options = ["", "All Tasks/Assessments", "HW for Prac/Prep"];
+        for(let option of options) {
+            let list = document.createElement("option");
+            list.text = option;
+            categorySelect.appendChild(list);
+        }
+
+        row.insertCell(0).appendChild(categorySelect);
+        categorySelect.addEventListener("change", function(e){
+            categories[this.id] = e.target.value;
+            scores[this.id] = parseInt(assignments.rows[this.id].cells[1].getElementsByTagName('input')[0].value);
+            totals[this.id] = parseInt(assignments.rows[this.id].cells[2].getElementsByTagName('input')[0].value);
+            updateGrades();
+        })
+
+
+        //add score cell
+        let scoreInput = document.createElement("input");
+        scoreInput.type = 'number';
+        scoreInput.defaultValue = 0;
+        scoreInput.setAttribute("id", row.rowIndex);
+        row.insertCell(1).appendChild(scoreInput);
+
+        scoreInput.addEventListener("input", function(e){
+            let val = e.target.value;
+            if(val)
+                val = parseInt(val);
+            else
+                val = 0;
+            scores[this.id] = val;
+            let select = assignments.rows[this.id].cells[0].getElementsByTagName('select')[0];
+            let category = select.options[select.selectedIndex].value;
+            categories[this.id] = category;
+            totals[this.id] = parseInt(assignments.rows[this.id].cells[2].getElementsByTagName('input')[0].value);
+
+            updateGrades();
+        })
+
+        //add total cell
+        let totalInput = document.createElement("input");
+        totalInput.type = 'number';
+        totalInput.defaultValue = 0;
+        totalInput.setAttribute("id", row.rowIndex);
+        row.insertCell(2).appendChild(totalInput);
+
+        totalInput.addEventListener("input", function(e){
+            let val = e.target.value;
+            if(val)
+                val = parseInt(val);
+            else
+                val = 0;
+            totals[this.id] = val;
+            scores[this.id] = parseInt(assignments.rows[this.id].cells[1].getElementsByTagName('input')[0].value);
+            let select = assignments.rows[this.id].cells[0].getElementsByTagName('select')[0];
+            let category = select.options[select.selectedIndex].value;
+            categories[this.id] = category;
+
+            updateGrades();
+        })
+
+        row.insertCell(3);
+
+        //add delete button
+        let deleteButton = document.createElement("button");
+        deleteButton.textContent = "Delete";
+        deleteButton.setAttribute("id", row.rowIndex);
+        row.insertCell(4).appendChild(deleteButton);
+
+        deleteButton.addEventListener("click", function(){
+        })
+    }
+
+    function updateGrades(){
+        let taskScores = 0;
+        let taskTotal = 0;
+        let hwScores = 0;
+        let hwTotal = 0;
+        let total = 0;
+
+        for(let i=0; i<categories.length; i++){
+            if(categories[i] == "All Tasks/Assessments"){
+                taskScores += scores[i];
+                taskTotal += totals[i];
+            } else if(categories[i] == "HW for Prac/Prep"){
+                hwScores += scores[i];
+                hwTotal += totals[i];
+            }
+        }
+
+        overall.rows[1].cells[1].innerHTML = taskScores;
+        overall.rows[1].cells[2].innerHTML = taskTotal;
+        overall.rows[2].cells[1].innerHTML = hwScores;
+        overall.rows[2].cells[2].innerHTML = hwTotal;
+
+        if(taskTotal !== 0){
+            let percent = taskScores/taskTotal*100;
+            total += percent * .9;
+            overall.rows[1].cells[3].innerHTML = percent.toFixed(2) + " %";
+        } else{
+            overall.rows[1].cells[3].innerHTML = 0 + " %";
+        }
+
+        if(hwTotal !== 0){
+            let percent = hwScores/hwTotal*100;
+            total += percent * .1;
+            overall.rows[2].cells[3].innerHTML = percent.toFixed(2) + " %";
+        } else{
+            overall.rows[2].cells[3].innerHTML = 0 + " %";
+        }
+
+        overall.rows[3].cells[3].innerHTML = total.toFixed(2) + " %";
+    }
+
+</script>
+</html>
